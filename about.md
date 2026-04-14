@@ -12,7 +12,7 @@ Hi there! I'm Koala, a graduate student specializing in Deep Learning.
 ### 🛠 Tech Stack
 - Languages: Python (PyTorch), Go (Backend Development), C++
 
-- Tools: Git, Linux/Tmux, Docker， PostgreSQL
+- Tools: Git, Linux/Tmux, Docker, PostgreSQL
 
 ### 🎮 Hobbies & Interests
 - JPop music
