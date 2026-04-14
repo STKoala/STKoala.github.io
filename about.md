@@ -16,4 +16,4 @@ Hi there! I'm Koala, a graduate student specializing in Deep Learning.
 
 ### 🎮 Hobbies & Interests
 - JPop music
-- Arkham Horror, Poker, Riichi-mahjon, gRoco Kingdom,
+- Arkham Horror, Poker, Riichi-mahjon, gRoco Kingdom, Maimai DX
