@@ -15,8 +15,8 @@ date: 2026-05-11 15:00:00
 
 ### 友链列表
 
-- [示例站点 A](https://example.com/) - 一句话简介
-- [示例站点 B](https://example.org/) - 一句话简介
+- [Yang](https://sgdbs.github.io/) - Diffusion 
+
 
 ### 交换说明
 
