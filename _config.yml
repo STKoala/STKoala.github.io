@@ -1,3 +1,4 @@
 theme: jekyll-theme-minimal
 title: 我的个人博客
 description: 这里是我的深度学习与开发笔记
+permalink: /:year/:month/:day/:title:output_ext
