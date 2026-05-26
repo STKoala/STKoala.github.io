@@ -1,6 +1,7 @@
 ---
 title: 超聚变 Hackathon 游记
 date: 2026-05-26 15:00:00
+coverImg: /images/hackathon-drink.jpg
 categories:
   - life
 tags:
