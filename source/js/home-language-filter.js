@@ -38,7 +38,7 @@
 
   function init() {
     const articleList = document.querySelector('#articles .article-row');
-    if (!articleList || document.querySelector('.home-lang-filter')) return;
+    if (!articleList || document.querySelector('.home-lang-filter-wrapper')) return;
 
     const cards = Array.from(articleList.querySelectorAll('.article'));
     if (!cards.length) return;
@@ -68,7 +68,10 @@
         return button;
       });
 
-    articleList.parentElement.insertBefore(controls, articleList);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'home-lang-filter-wrapper article col s12';
+    wrapper.appendChild(controls);
+    articleList.insertBefore(wrapper, articleList.firstChild);
 
     const saved = window.localStorage.getItem('home-post-language');
     const initial = available.has(saved) ? saved : detectLanguageFromPath(window.location.pathname);
