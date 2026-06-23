@@ -129,6 +129,64 @@ function collectPosts(hexo) {
   return posts.data.filter(post => post && post.published !== false);
 }
 
+function postTimestamp(post) {
+  if (!post || !post.date) return 0;
+  if (typeof post.date.valueOf === 'function') return post.date.valueOf();
+  const value = new Date(post.date).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+function postPath(post) {
+  return String(post && post.path ? post.path : '');
+}
+
+function samePost(a, b) {
+  if (!a || !b) return false;
+  if (a._id && b._id && a._id === b._id) return true;
+  if (a.id && b.id && a.id === b.id) return true;
+  return postPath(a) === postPath(b);
+}
+
+function sortedPosts(posts) {
+  return posts.slice().sort((a, b) => {
+    const dateDiff = postTimestamp(b) - postTimestamp(a);
+    if (dateDiff) return dateDiff;
+    return postPath(a).localeCompare(postPath(b));
+  });
+}
+
+function findAdjacentPost(currentPost, posts, direction) {
+  const currentLang = normalizeLang(currentPost.lang || currentPost.language);
+  const currentKey = translationKey(currentPost);
+  const orderedPosts = sortedPosts(posts);
+  const currentIndex = orderedPosts.findIndex(post => samePost(post, currentPost));
+  if (currentIndex < 0) return null;
+
+  if (direction < 0) {
+    for (let index = currentIndex - 1; index >= 0; index--) {
+      const post = orderedPosts[index];
+      if (normalizeLang(post.lang || post.language) === currentLang && translationKey(post) !== currentKey) {
+        return post;
+      }
+    }
+    return null;
+  }
+
+  for (let index = currentIndex + 1; index < orderedPosts.length; index++) {
+    const post = orderedPosts[index];
+    if (normalizeLang(post.lang || post.language) === currentLang && translationKey(post) !== currentKey) {
+      return post;
+    }
+  }
+  return null;
+}
+
+function localizePrevNext(page, posts) {
+  if (!page || page.layout !== 'post') return;
+  page.prev = findAdjacentPost(page, posts, -1);
+  page.next = findAdjacentPost(page, posts, 1);
+}
+
 function languageSwitchHtml(currentPost, relatedPosts, config) {
   const currentLang = normalizeLang(currentPost.lang || currentPost.language);
   const links = LANGUAGE_ORDER.map(lang => {
@@ -138,7 +196,7 @@ function languageSwitchHtml(currentPost, relatedPosts, config) {
     if (lang === currentLang) {
       return `<span class="lang-switch__current" aria-current="page">${htmlEscape(label)}</span>`;
     }
-    return `<a class="lang-switch__link lang-switch__link-${htmlEscape(lang.toLowerCase())}" href="${htmlEscape(urlFor(post.path, config))}" hreflang="${htmlEscape(lang)}">${htmlEscape(label)}</a>`;
+    return `<a class="lang-switch__link lang-switch__link-${htmlEscape(lang.toLowerCase())}" href="${htmlEscape(urlFor(post.path, config))}" hreflang="${htmlEscape(lang)}" target="_self">${htmlEscape(label)}</a>`;
   }).filter(Boolean);
 
   if (links.length < 2) return '';
@@ -165,8 +223,11 @@ hexo.extend.filter.register('post_permalink', function localizePostPermalink(pos
 hexo.extend.filter.register('template_locals', function injectLanguageSwitch(locals) {
   if (!locals || !locals.page || locals.page.layout !== 'post') return locals;
 
+  const posts = collectPosts(this);
+  localizePrevNext(locals.page, posts);
+
   const key = translationKey(locals.page);
-  const relatedPosts = collectPosts(this)
+  const relatedPosts = posts
     .filter(post => translationKey(post) === key)
     .sort((a, b) => {
       const aIndex = LANGUAGE_ORDER.indexOf(normalizeLang(a.lang || a.language));
@@ -184,6 +245,10 @@ hexo.extend.filter.register('template_locals', function injectLanguageSwitch(loc
 
 hexo.extend.injector.register('head_end', () => {
   return `<link rel="stylesheet" href="${htmlEscape(urlFor('css/lang-switch.css', hexo.config))}">`;
+}, 'post');
+
+hexo.extend.injector.register('body_end', () => {
+  return `<script src="${htmlEscape(urlFor('js/lang-switch.js', hexo.config))}"></script>`;
 }, 'post');
 
 hexo.extend.injector.register('head_end', () => {

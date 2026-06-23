@@ -54,3 +54,12 @@
 .lang-switch__separator {
   color: #b7c5bd;
 }
+
+body.DarkMode .lang-switch {
+  background: #282c34 !important;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+body.DarkMode .lang-switch__separator {
+  color: rgba(255, 255, 255, 0.35);
+}
