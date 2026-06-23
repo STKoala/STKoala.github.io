@@ -45,6 +45,14 @@
     });
   }
 
+  function revealVisibleCards(cards) {
+    cards.forEach(card => {
+      if (!card.hidden) {
+        card.classList.add('aos-animate');
+      }
+    });
+  }
+
   function applyLanguage(lang, buttons, cards) {
     buttons.forEach(button => {
       const active = button.dataset.lang === lang;
@@ -58,6 +66,7 @@
 
     window.localStorage.setItem('home-post-language', lang);
     resetArticleGrid();
+    revealVisibleCards(cards);
   }
 
   function init() {

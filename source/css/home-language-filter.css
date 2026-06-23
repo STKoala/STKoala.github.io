@@ -20,6 +20,11 @@
   z-index: 2;
 }
 
+.home-lang-filter-wrapper ~ .article:not([hidden]) {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 .home-lang-filter__button {
   min-height: 2rem;
   padding: 0 1rem;
