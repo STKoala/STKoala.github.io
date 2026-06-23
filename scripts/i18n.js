@@ -185,3 +185,11 @@ hexo.extend.filter.register('template_locals', function injectLanguageSwitch(loc
 hexo.extend.injector.register('head_end', () => {
   return `<link rel="stylesheet" href="${htmlEscape(urlFor('css/lang-switch.css', hexo.config))}">`;
 }, 'post');
+
+hexo.extend.injector.register('head_end', () => {
+  return `<link rel="stylesheet" href="${htmlEscape(urlFor('css/home-language-filter.css', hexo.config))}">`;
+}, 'home');
+
+hexo.extend.injector.register('body_end', () => {
+  return `<script src="${htmlEscape(urlFor('js/home-language-filter.js', hexo.config))}"></script>`;
+}, 'home');
