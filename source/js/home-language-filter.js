@@ -22,6 +22,29 @@
     }
   }
 
+  function resetArticleGrid() {
+    const container = document.querySelector('#articles');
+    if (!container) return;
+
+    if (window.jQuery) {
+      const $container = window.jQuery(container);
+      if (typeof $container.masonry === 'function' && $container.data('masonry')) {
+        $container.masonry('destroy');
+      }
+    }
+
+    container.style.height = '';
+    container.querySelectorAll('.article').forEach(card => {
+      card.style.position = '';
+      card.style.left = '';
+      card.style.top = '';
+      card.style.right = '';
+      card.style.bottom = '';
+      card.style.width = '';
+      card.style.transform = '';
+    });
+  }
+
   function applyLanguage(lang, buttons, cards) {
     buttons.forEach(button => {
       const active = button.dataset.lang === lang;
@@ -34,6 +57,7 @@
     });
 
     window.localStorage.setItem('home-post-language', lang);
+    resetArticleGrid();
   }
 
   function init() {
@@ -76,6 +100,7 @@
     const saved = window.localStorage.getItem('home-post-language');
     const initial = available.has(saved) ? saved : detectLanguageFromPath(window.location.pathname);
     applyLanguage(available.has(initial) ? initial : 'zh-CN', buttons, cards);
+    window.addEventListener('load', resetArticleGrid, { once: true });
   }
 
   if (document.readyState === 'loading') {
