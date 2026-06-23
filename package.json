@@ -7,7 +7,9 @@
     "clean": "hexo clean",
     "build": "hexo generate",
     "server": "hexo server",
-    "deploy": "hexo clean && hexo generate"
+    "deploy": "hexo clean && hexo generate",
+    "translate:en": "node scripts/translate-articles.js en",
+    "translate:ja": "node scripts/translate-articles.js ja"
   },
   "dependencies": {
     "hexo": "^7.2.0",

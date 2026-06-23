@@ -31,3 +31,65 @@ npm run server
 ```bash
 npx hexo new "你的文章标题"
 ```
+
+## 多语言文章
+
+默认文章语言是中文。要给一篇文章增加英文或日文版本，在 `source/_posts/` 里新增同一 slug 的语言后缀文件：
+
+```text
+source/_posts/why-i-start-blogging.md
+source/_posts/why-i-start-blogging.en.md
+source/_posts/why-i-start-blogging.ja.md
+```
+
+翻译版 front matter 里加 `lang`：
+
+```yaml
+---
+title: Why I Started Blogging
+date: 2026-05-11 15:00:00
+lang: en
+categories:
+  - life
+tags:
+  - blog
+---
+```
+
+日文版使用 `lang: ja`。构建时会自动生成 `/en/...`、`/ja/...` 路径，并在同一组文章顶部显示中文 / 日本語 / English 切换链接。
+
+如果翻译文件不想使用 `.en.md` 或 `.ja.md` 后缀，可以给同组文章手动设置相同的 `translation_key`。
+
+## 自动翻译
+
+仓库里有自动翻译脚本和 GitHub Actions 工作流：
+
+- `npm run translate:en`：把最近 31 天的中文原文翻译成英文
+- `npm run translate:ja`：把最近 31 天的中文原文翻译成日文
+- `.github/workflows/translate-articles.yml`：每周六自动翻译，也可以在 GitHub Actions 页面手动触发
+
+本地运行前需要设置：
+
+```bash
+export OPENAI_API_KEY="你的 OpenAI API Key"
+npm run translate:en
+npm run translate:ja
+```
+
+常用参数：
+
+```bash
+# 只演练，不调用 OpenAI
+npm run translate:en -- --dry-run --all
+
+# 翻译全部中文原文
+npm run translate:ja -- --all
+
+# 指定单篇文章
+node scripts/translate-articles.js en source/_posts/why-i-start-blogging.md
+
+# 覆盖已有译文
+npm run translate:en -- --force --all
+```
+
+GitHub Actions 需要在仓库 Secrets 配置 `OPENAI_API_KEY`。可选地，在 Variables 里配置 `OPENAI_TRANSLATION_MODEL` 覆盖默认模型 `o4-mini`。

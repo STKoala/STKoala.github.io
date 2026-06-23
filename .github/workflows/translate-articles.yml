@@ -1,0 +1,83 @@
+name: Translate articles
+
+on:
+  schedule:
+    - cron: "0 13 * * 6"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Translate posts from the last N days. Use 0 with all=true for all posts."
+        default: "31"
+        required: false
+      all:
+        description: "Translate all original Chinese posts."
+        default: "false"
+        required: false
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lang:
+          - en
+          - ja
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Translate latest articles
+        id: translate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_TRANSLATION_MODEL: ${{ vars.OPENAI_TRANSLATION_MODEL || 'o4-mini' }}
+        run: |
+          args=()
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            args+=(--days=${{ inputs.days }})
+            if [ "${{ inputs.all }}" = "true" ]; then
+              args+=(--all)
+            fi
+          fi
+          npm run translate:${{ matrix.lang }} -- "${args[@]}"
+          {
+            echo 'translated<<EOF'
+            cat translated.json
+            echo ''
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "feat: add ${{ matrix.lang }} translations"
+          author: "koala-bot <koala-bot@users.noreply.github.com>"
+          branch: auto-translation-${{ matrix.lang }}
+          delete-branch: true
+          title: "Add ${{ matrix.lang }} translated articles"
+          body: |
+            Generated translated articles.
+
+            ```json
+            ${{ steps.translate.outputs.translated }}
+            ```
+          labels: bot
