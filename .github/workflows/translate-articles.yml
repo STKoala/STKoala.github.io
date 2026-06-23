@@ -48,8 +48,12 @@ jobs:
       - name: Translate latest articles
         id: translate
         env:
+          TRANSLATION_PROVIDER: ${{ vars.TRANSLATION_PROVIDER || 'openai' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_TRANSLATION_MODEL: ${{ vars.OPENAI_TRANSLATION_MODEL || 'o4-mini' }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_BASE_URL: ${{ vars.DEEPSEEK_BASE_URL || 'https://api.deepseek.com' }}
+          DEEPSEEK_TRANSLATION_MODEL: ${{ vars.DEEPSEEK_TRANSLATION_MODEL || 'deepseek-v4-pro' }}
         run: |
           args=()
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then

@@ -68,7 +68,7 @@ tags:
 - `npm run translate:ja`：把最近 31 天的中文原文翻译成日文
 - `.github/workflows/translate-articles.yml`：每周六自动翻译，也可以在 GitHub Actions 页面手动触发
 
-本地运行前需要设置：
+默认使用 OpenAI。使用 OpenAI 时，本地运行前需要设置：
 
 ```bash
 export OPENAI_API_KEY="你的 OpenAI API Key"
@@ -92,4 +92,17 @@ node scripts/translate-articles.js en source/_posts/why-i-start-blogging.md
 npm run translate:en -- --force --all
 ```
 
-GitHub Actions 需要在仓库 Secrets 配置 `OPENAI_API_KEY`。可选地，在 Variables 里配置 `OPENAI_TRANSLATION_MODEL` 覆盖默认模型 `o4-mini`。
+如果想用 DeepSeek 翻译，本地这样设置：
+
+```bash
+export TRANSLATION_PROVIDER="deepseek"
+export DEEPSEEK_API_KEY="你的 DeepSeek API Key"
+export DEEPSEEK_TRANSLATION_MODEL="deepseek-v4-pro"
+npm run translate:en
+npm run translate:ja
+```
+
+GitHub Actions 配置：
+
+- 使用 OpenAI：在仓库 Secrets 配置 `OPENAI_API_KEY`。可选地，在 Variables 里配置 `OPENAI_TRANSLATION_MODEL` 覆盖默认模型 `o4-mini`。
+- 使用 DeepSeek：在仓库 Secrets 配置 `DEEPSEEK_API_KEY`，在 Variables 配置 `TRANSLATION_PROVIDER=deepseek`。可选地，配置 `DEEPSEEK_TRANSLATION_MODEL=deepseek-v4-pro` 和 `DEEPSEEK_BASE_URL=https://api.deepseek.com`。

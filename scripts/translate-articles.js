@@ -7,8 +7,12 @@ const frontMatter = require('hexo-front-matter');
 const ROOT = path.resolve(__dirname, '..');
 const POSTS_DIR = path.join(ROOT, 'source', '_posts');
 const DEFAULT_DAYS = 31;
-const DEFAULT_MODEL = process.env.OPENAI_TRANSLATION_MODEL || 'o4-mini';
-const DEFAULT_MAX_OUTPUT_TOKENS = Number(process.env.OPENAI_TRANSLATION_MAX_OUTPUT_TOKENS || 20000);
+const TRANSLATION_PROVIDER = (process.env.TRANSLATION_PROVIDER || 'openai').toLowerCase();
+const OPENAI_MODEL = process.env.OPENAI_TRANSLATION_MODEL || 'o4-mini';
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_TRANSLATION_MODEL || 'deepseek-v4-pro';
+const OPENAI_MAX_OUTPUT_TOKENS = Number(process.env.OPENAI_TRANSLATION_MAX_OUTPUT_TOKENS || 20000);
+const DEEPSEEK_MAX_TOKENS = Number(process.env.DEEPSEEK_TRANSLATION_MAX_TOKENS || 20000);
+const DEEPSEEK_BASE_URL = (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
 const LANGUAGE_SUFFIX_RE = /\.(en|ja|jp|zh|zh-cn)$/i;
 
 const TARGET_LANGUAGES = {
@@ -29,9 +33,14 @@ function usage() {
   node scripts/translate-articles.js <en|ja> [source/_posts/article.md] [--all] [--days=31] [--force] [--dry-run]
 
 Environment:
-  OPENAI_API_KEY                         Required unless --dry-run
+  TRANSLATION_PROVIDER                   openai | deepseek, default: openai
+  OPENAI_API_KEY                         Required for OpenAI unless --dry-run
   OPENAI_TRANSLATION_MODEL               Default: o4-mini
   OPENAI_TRANSLATION_MAX_OUTPUT_TOKENS   Default: 20000
+  DEEPSEEK_API_KEY                       Required for DeepSeek unless --dry-run
+  DEEPSEEK_BASE_URL                      Default: https://api.deepseek.com
+  DEEPSEEK_TRANSLATION_MODEL             Default: deepseek-v4-pro
+  DEEPSEEK_TRANSLATION_MAX_TOKENS        Default: 20000
 `);
 }
 
@@ -172,11 +181,11 @@ ${markdown}`;
 
 async function callOpenAI(input) {
   const requestBody = {
-    model: DEFAULT_MODEL,
+    model: OPENAI_MODEL,
     input,
-    max_output_tokens: DEFAULT_MAX_OUTPUT_TOKENS
+    max_output_tokens: OPENAI_MAX_OUTPUT_TOKENS
   };
-  if (/^(o\d|o[1-9]|gpt-5)/i.test(DEFAULT_MODEL)) {
+  if (/^(o\d|o[1-9]|gpt-5)/i.test(OPENAI_MODEL)) {
     requestBody.reasoning = {
       effort: process.env.OPENAI_TRANSLATION_REASONING_EFFORT || 'high'
     };
@@ -199,8 +208,38 @@ async function callOpenAI(input) {
   return body;
 }
 
+async function callDeepSeek(messages) {
+  const requestBody = {
+    model: DEEPSEEK_MODEL,
+    messages,
+    stream: false,
+    max_tokens: DEEPSEEK_MAX_TOKENS
+  };
+  if (/^(deepseek-v4-pro|deepseek-reasoner)$/i.test(DEEPSEEK_MODEL)) {
+    requestBody.thinking = { type: 'enabled' };
+    requestBody.reasoning_effort = process.env.DEEPSEEK_REASONING_EFFORT || 'high';
+  }
+
+  const response = await fetch(`${DEEPSEEK_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = body?.error?.message || response.statusText;
+    throw new Error(`DeepSeek API failed (${response.status}): ${detail}`);
+  }
+  return body;
+}
+
 function outputText(response) {
   if (typeof response.output_text === 'string') return response.output_text;
+  if (response.choices?.[0]?.message?.content) return response.choices[0].message.content;
   return (response.output || [])
     .flatMap(item => item.content || [])
     .filter(part => part.type === 'output_text' || part.type === 'text')
@@ -209,8 +248,14 @@ function outputText(response) {
 }
 
 async function translateMarkdown(markdown, langConfig) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is required.');
+  if (TRANSLATION_PROVIDER === 'openai' && !process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is required for TRANSLATION_PROVIDER=openai.');
+  }
+  if (TRANSLATION_PROVIDER === 'deepseek' && !process.env.DEEPSEEK_API_KEY) {
+    throw new Error('DEEPSEEK_API_KEY is required for TRANSLATION_PROVIDER=deepseek.');
+  }
+  if (!['openai', 'deepseek'].includes(TRANSLATION_PROVIDER)) {
+    throw new Error(`Unsupported TRANSLATION_PROVIDER: ${TRANSLATION_PROVIDER}`);
   }
 
   const messages = [{
@@ -220,11 +265,15 @@ async function translateMarkdown(markdown, langConfig) {
   const chunks = [];
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const response = await callOpenAI(messages);
+    const response = TRANSLATION_PROVIDER === 'deepseek'
+      ? await callDeepSeek(messages)
+      : await callOpenAI(messages);
     const text = outputText(response);
     chunks.push(text);
 
-    if (response.incomplete_details?.reason !== 'max_output_tokens') {
+    const finishReason = response.choices?.[0]?.finish_reason;
+    const shouldContinue = response.incomplete_details?.reason === 'max_output_tokens' || finishReason === 'length';
+    if (!shouldContinue) {
       break;
     }
 
